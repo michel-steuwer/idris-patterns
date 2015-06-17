@@ -11,6 +11,15 @@ Array a i = Vect i a
 Vector : Type -> Size -> Type
 Vector a i = Vect i a
 
+-- lemmas
+
+lemma1 : (n: Size) -> mult n 1 = plus n (mult n 0)
+lemma1 Z = Refl
+lemma1 (S k) = cong (lemma1 k)
+
+lemma2 : (n: Size) -> (i: Size) -> mult n (S i) = plus n (mult n i)
+lemma2 Z _ = Refl
+lemma2 n Z = lemma1 n
 
 -- algorithmic primitives
 
@@ -29,24 +38,23 @@ reduce : {a: Type} -> {i: Size} ->
 reduce f z Nil        = (z :: Nil)
 reduce f z (x :: xs)  = reduce f (f (z,x)) xs
 
-
-
 split : {a: Type} -> {i: Size} ->
-      (n: Size) -> Array a (n * i) -> Array (Array a n) i
-split = _
-{-
+      (n: Size) -> Array a (n * S i) -> Array (Array a n) (S i)
 split {a} {i} n xs = a1 :: a2
-    where
-          take : (n : Size) -> Array a (n + m) -> Array a n
-          take Z     xs        = []
-          take (S k) (x :: xs) = x :: take k xs
+  where
+    take : (n : Size) -> Array a (n + m) -> Array a n
+    take Z     xs        = []
+    take (S k) (x :: xs) = x :: take k xs
 
-          a1 : Array a n
-          a1 = (take n xs)
+    take' : (n: Size) -> Array a (n + n * i) -> Array a n
+    take' n = take n
 
-          a2 : Array (Array a n) (i - 1)
-          a2 = (skel.split n (drop n xs))
--}
+    a1 : Array a n
+    a1 = (take' n xs)
+    --a1 = rewrite lemma1 n in (take' n xs)
+
+    a2 : Array (Array a n) (i - 1)
+    a2 = (skel.split n (drop n xs))
 
 join : {a: Type} -> {i: Size} -> {j: Size} ->
       Array (Array a i) j -> Array a (j * i)
@@ -56,7 +64,7 @@ join (x :: xs) = x ++ (skel.join xs)
 iterate : {a: Type} -> {i: Size} -> {j: Size} ->
       (n: Size) -> ( (m: Size) -> Array a (i * m) -> Array a m )
                -> Array a ((power i n) * j) -> Array a j
-iterate Z f xs = xs
+-- iterate Z f xs = xs
 
 reorder : {a: Type} -> {i: Size} ->
       Array a i -> Array a i
@@ -132,5 +140,5 @@ ys : Array (Nat, Nat) 4
 ys = skel.zip xs (skel.map times2 xs)
 
 zs : Array Nat 1
-zs = reduce add 0 xs 
+zs = reduce add 0 xs
 
