@@ -143,10 +143,15 @@ joinVec (x :: xs) = x ++ (joinVec xs)
 --               -> iterate (m + n) f {a=a} {i=i} {j=j} = iterate m f {a=a} {i=i} {j=j} . iterate n f {a=a} {i=i} {j=(power i m) * j}
 -- iterateDecomp n m = ?decomp
 
-splitJoin : {a : Type} -> {b : Type} -> (n : Size) -> (f : a -> b) ->
-          -> skel.map f = skel.join . skel.map (skel.map f) . skel.split n
-splitJoin n f = ?foo
+splitJoin : {a : Type} -> {b : Type} -> {i : Size} -> (n : Size) -> (f : a -> b) -> (xs : Array a (n * i))
+          -> skel.map f xs = skel.join $ skel.map (skel.map f) $ skel.split n xs
+splitJoin n f xs = ?foo
 
+
+--joinSplitSimple1 : skel.join . skel.split n = id
+joinSplitSimple1 : {a: Type} -> {b: Type} -> {i: Size} -> (n: Size) -> (xs: Array a (n *i))
+                  -> skel.join $ skel.split n xs = xs
+joinSplitSimple1 n xs = ?bar
 
 -- some tests
 
