@@ -39,7 +39,8 @@ reduce f z Nil        = (z :: Nil)
 reduce f z (x :: xs)  = reduce f (f (z,x)) xs
 
 split : {a: Type} -> {i: Size} ->
-      (n: Size) -> Array a (n * S i) -> Array (Array a n) (S i)
+      (n: Size) -> Array a (n * (S i)) -> Array (Array a n) (S i)
+split {i=Z} n xs  = (rewrite sym (multOneRightNeutral n) in xs) :: Nil
 split {a} {i} n xs = a1 :: a2
   where
     take : (n : Size) -> Array a (n + m) -> Array a n
@@ -50,8 +51,7 @@ split {a} {i} n xs = a1 :: a2
     take' n = take n
 
     a1 : Array a n
-    a1 = (take' n xs)
-    --a1 = rewrite lemma1 n in (take' n xs)
+    a1 = take' n (rewrite sym (lemma2 n i) in xs)
 
     a2 : Array (Array a n) (i - 1)
     a2 = (skel.split n (drop n xs))
