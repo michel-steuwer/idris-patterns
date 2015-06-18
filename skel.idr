@@ -20,6 +20,7 @@ lemma1 (S k) = cong (lemma1 k)
 lemma2 : (n: Size) -> (i: Size) -> mult n (S i) = plus n (mult n i)
 lemma2 Z _ = Refl
 lemma2 n Z = lemma1 n
+-- lemma2 n i = 
 
 -- algorithmic primitives
 
@@ -39,22 +40,22 @@ reduce f z Nil        = (z :: Nil)
 reduce f z (x :: xs)  = reduce f (f (z,x)) xs
 
 split : {a: Type} -> {i: Size} ->
-      (n: Size) -> Array a (n * (S i)) -> Array (Array a n) (S i)
-split {i=Z} n xs  = (rewrite sym (multOneRightNeutral n) in xs) :: Nil
-split {a} {i} n xs = a1 :: a2
+      (n: Size) -> Array a (n * i) -> Array (Array a n) i
+split {a} {i=Z}   n (rewrite (multZeroRightZero n) in Nil) = Nil
+split {a} {i=S k} n xs  = a1 :: a2
   where
-    take : (n : Size) -> Array a (n + m) -> Array a n
-    take Z     xs        = []
-    take (S k) (x :: xs) = x :: take k xs
-
-    take' : (n: Size) -> Array a (n + n * i) -> Array a n
+    take' : (n: Size) -> Array a (n + n * k) -> Array a n
     take' n = take n
 
     a1 : Array a n
-    a1 = take' n (rewrite sym (lemma2 n i) in xs)
+    a1 = take' n (rewrite sym (lemma2 n k) in xs)
 
-    a2 : Array (Array a n) (i - 1)
-    a2 = (skel.split n (drop n xs))
+    drop' : (n: Size) -> Array a (n + n * k) -> Array a (n * k)
+    drop' n = drop n
+
+    a2 : Array (Array a n) k
+    a2 = (skel.split n (drop' n (rewrite sym (lemma2 n k) in xs)))
+
 
 join : {a: Type} -> {i: Size} -> {j: Size} ->
       Array (Array a i) j -> Array a (j * i)
@@ -117,6 +118,7 @@ mapVec _ = skel.map
 
 splitVec : {a: Type} -> {i: Size} ->
       (n: Size) -> Array a (n * i) -> Array (Vector a n) i
+splitVec = split
 
 joinVec : {a: Type} -> {i: Size} -> {j: Size} ->
       Array (Vector a i) j -> Vector a (j * i)
