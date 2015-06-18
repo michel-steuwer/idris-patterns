@@ -65,9 +65,11 @@ join Nil = Nil
 join (x :: xs) = x ++ (skel.join xs)
 
 iterate : {a: Type} -> {i: Size} -> {j: Size} ->
-      (n: Size) -> ( (m: Size) -> Array a (i * m) -> Array a m )
+      (n: Size) -> ( {m: Size} -> Array a (i * m) -> Array a m )
                -> Array a ((power i n) * j) -> Array a j
--- iterate Z f xs = xs
+iterate {j} Z f xs = (rewrite sym (plusZeroRightNeutral j) in xs)
+iterate {j} {i} (S n) f xs = iterate n f (f xs')
+        where xs' = (rewrite (multAssociative i (power i n) j) in xs)
 
 reorder : {a: Type} -> {i: Size} ->
       Array a i -> Array a i
