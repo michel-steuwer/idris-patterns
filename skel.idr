@@ -15,14 +15,8 @@ Vector a i = Vect i a
 
 -- lemmas
 
-lemma1 : (n: Size) -> mult n 1 = plus n (mult n 0)
-lemma1 Z = Refl
-lemma1 (S k) = cong (lemma1 k)
-
-lemma2 : (n: Size) -> (i: Size) -> mult n (S i) = plus n (mult n i)
-lemma2 Z _ = Refl
-lemma2 n Z = lemma1 n
-lemma2 n i = ?l2
+lemma1 : (n: Size) -> (i: Size) -> mult n (S i) = plus n (mult n i)
+lemma1 n i = ?l2
 
 -- algorithmic primitives
 
@@ -50,13 +44,13 @@ split {a} {i=S k} n xs  = a1 :: a2
     take' n = take n
 
     a1 : Array a n
-    a1 = take' n (rewrite sym (lemma2 n k) in xs)
+    a1 = take' n (rewrite sym (lemma1 n k) in xs)
 
     drop' : (n: Size) -> Array a (n + n * k) -> Array a (n * k)
     drop' n = drop n
 
     a2 : Array (Array a n) k
-    a2 = (skel.split n (drop' n (rewrite sym (lemma2 n k) in xs)))
+    a2 = (skel.split n (drop' n (rewrite sym (lemma1 n k) in xs)))
 
 
 join : {a: Type} -> {i: Size} -> {j: Size} ->
@@ -66,9 +60,9 @@ join (x :: xs) = x ++ (skel.join xs)
 
 iterate : {a: Type} -> {i: Size} -> {j: Size} ->
       (n: Size) -> ( {m: Size} -> Array a (i * m) -> Array a m )
-               -> Array a ((power i n) * j) -> Array a j
-iterate {j} Z f xs = (rewrite sym (plusZeroRightNeutral j) in xs)
-iterate {j} {i} (S n) f xs = iterate n f (f xs')
+                -> Array a ((power i n) * j) -> Array a j
+iterate {a} {i} {j} Z     f xs = (rewrite sym (plusZeroRightNeutral j) in xs)
+iterate {a} {i} {j} (S n) f xs = iterate n f (f xs')
         where xs' = (rewrite (multAssociative i (power i n) j) in xs)
 
 reorder : {a: Type} -> {i: Size} ->
@@ -108,14 +102,17 @@ reduceSeq f z (x :: xs)  = reduceSeq f (f (z,x)) xs
 
 reducePart : {a: Type} -> {i: Size} ->
       ((a,a) -> a) -> a -> (n: Size) -> Array a (n * i) -> Array a n
-reducePart f z (S Z) = reduce f z
-reducePart {a} {i} f z k =
- (rewrite sym (multOneRightNeutral k) in joinK) . skel.map (reduce f z) . (rewrite sym (multCommutative i k) in splitI)
-           where joinK  : Array (Array a 1) k -> Array a (k * 1) 
-                 joinK  = skel.join {j=k} {i=1}
-           
-                 splitI : Array a (i * k) -> Array (Array a i) k
-                 splitI = skel.split {i=k} i
+reducePart {a} {i} f z (S Z) = skel.reduce f z
+reducePart {a} {i} f z k     =
+   (rewrite sym (multOneRightNeutral k) in joinK)
+ . skel.map (skel.reduce f z)
+ . (rewrite sym (multCommutative i k) in splitI)
+  where
+    joinK  : Array (Array a 1) k -> Array a (k * 1)
+    joinK  = skel.join {i=1} {j=k}
+
+    splitI : Array a (i * k) -> Array (Array a i) k
+    splitI = skel.split {i=k} i
 
 reorderStride : {a: Type} -> {i: Size} ->
       (n: Size) -> Array a i -> Array a i
@@ -137,21 +134,27 @@ joinVec (x :: xs) = x ++ (joinVec xs)
 
 
 -- rewrite rules
+{-
+iterateDecomp : {a : Type} -> {i : Size} -> {j : Size} ->
+                (n : Size) -> (m : Size)
+                           -> (f : {k : Size} -> Array a (i * k) -> Array a k) ->
+               iterate (m + n) f {a=a} {i=i} {j=j}
+                =   iterate m f {a=a} {i=i} {j=j}
+                  . iterate n f {a=a} {i=i} {j=(power i m) * j}
+iterateDecomp n m = ?decomp
+-}
 
--- iterateDecomp : {a : Type} -> {i : Size} -> {j : Size} 
---               -> (n : Size) -> (m : Size) -> (f : {k : Size} -> Array a (i * k) -> Array a k)
---               -> iterate (m + n) f {a=a} {i=i} {j=j} = iterate m f {a=a} {i=i} {j=j} . iterate n f {a=a} {i=i} {j=(power i m) * j}
--- iterateDecomp n m = ?decomp
-
-splitJoin : {a : Type} -> {b : Type} -> {i : Size} -> (n : Size) -> (f : a -> b) -> (xs : Array a (n * i))
-          -> skel.map f xs = skel.join $ skel.map (skel.map f) $ skel.split n xs
-splitJoin n f xs = ?foo
+splitJoin : {a : Type} -> {b : Type} -> {i : Size} ->
+            (n : Size) -> (f : a -> b) -> (xs : Array a (n * i)) ->
+            skel.map f xs = skel.join $ skel.map (skel.map f) $ skel.split n xs
+splitJoin n f xs = ?sj
 
 
 --joinSplitSimple1 : skel.join . skel.split n = id
-joinSplitSimple1 : {a: Type} -> {b: Type} -> {i: Size} -> (n: Size) -> (xs: Array a (n *i))
-                  -> skel.join $ skel.split n xs = xs
-joinSplitSimple1 n xs = ?bar
+joinSplitSimple1 : {a: Type} -> {b: Type} -> {i: Size} ->
+                   (n: Size) -> (xs: Array a (n *i)) ->
+                   skel.join $ skel.split n xs = xs
+joinSplitSimple1 n xs = ?jss
 
 -- some tests
 
