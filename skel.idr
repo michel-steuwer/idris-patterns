@@ -2,6 +2,8 @@ module skel
 
 import Data.VectType
 
+%default total
+
 Size : Type
 Size = Nat
 
@@ -20,7 +22,7 @@ lemma1 (S k) = cong (lemma1 k)
 lemma2 : (n: Size) -> (i: Size) -> mult n (S i) = plus n (mult n i)
 lemma2 Z _ = Refl
 lemma2 n Z = lemma1 n
--- lemma2 n i = 
+lemma2 n i = ?l2
 
 -- algorithmic primitives
 
@@ -105,8 +107,13 @@ reduceSeq f z (x :: xs)  = reduceSeq f (f (z,x)) xs
 reducePart : {a: Type} -> {i: Size} ->
       ((a,a) -> a) -> a -> (n: Size) -> Array a (n * i) -> Array a n
 reducePart f z (S Z) = reduce f z
---reducePart {a} {i} f z k =
---  skel.join . skel.map (reduce f z) . skel.split {i=k} i
+reducePart {a} {i} f z k =
+ (rewrite sym (multOneRightNeutral k) in joinK) . skel.map (reduce f z) . (rewrite sym (multCommutative i k) in splitI)
+           where joinK  : Array (Array a 1) k -> Array a (k * 1) 
+                 joinK  = skel.join {j=k} {i=1}
+           
+                 splitI : Array a (i * k) -> Array (Array a i) k
+                 splitI = skel.split {i=k} i
 
 reorderStride : {a: Type} -> {i: Size} ->
       (n: Size) -> Array a i -> Array a i
@@ -143,4 +150,23 @@ ys = skel.zip xs (skel.map times2 xs)
 
 zs : Array Nat 1
 zs = reduce add 0 xs
+
+---------- Proofs ----------
+
+skel.l2 = proof
+  intros
+  induction i
+  induction i
+  rewrite sym (multZeroRightZero n)
+  rewrite sym (multOneRightNeutral n)
+  rewrite sym (plusZeroRightNeutral n)
+  trivial
+  intros
+  rewrite sym (multZeroRightZero n)
+  rewrite sym (multOneRightNeutral n)
+  rewrite sym (plusZeroRightNeutral n)
+  trivial
+  intros
+  rewrite (multRightSuccPlus n (S n__0))
+  trivial
 
