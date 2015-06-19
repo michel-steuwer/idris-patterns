@@ -178,12 +178,6 @@ zs = reduce add 0 xs
 skel.l2 = proof
   intros
   induction i
-  induction i
-  rewrite sym (multZeroRightZero n)
-  rewrite sym (multOneRightNeutral n)
-  rewrite sym (plusZeroRightNeutral n)
-  trivial
-  intros
   rewrite sym (multZeroRightZero n)
   rewrite sym (multOneRightNeutral n)
   rewrite sym (plusZeroRightNeutral n)
