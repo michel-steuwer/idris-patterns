@@ -147,7 +147,8 @@ iterateDecomp n m = ?decomp
 splitJoin : {a : Type} -> {b : Type} -> {i : Size} ->
             (n : Size) -> (f : a -> b) -> (xs : Array a (n * i)) ->
             skel.map f xs = skel.join $ skel.map (skel.map f) $ skel.split n xs
-splitJoin n f xs = ?sj
+splitJoin {a} {b} {i=Z} Z f Nil = ?sj_nil
+splitJoin {a} {b} {i}   n f xs  = ?sj_cons
 
 
 --joinSplitSimple1 : skel.join . skel.split n = id
@@ -174,6 +175,11 @@ zs : Array Nat 1
 zs = reduce add 0 xs
 
 ---------- Proofs ----------
+
+skel.sj_nil = proof
+  intros
+  trivial 
+
 
 skel.l2 = proof
   intros
