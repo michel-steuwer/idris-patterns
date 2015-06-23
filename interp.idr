@@ -9,9 +9,6 @@ lemma1 : (n: Nat) -> (i: Nat) -> mult n (S i) = plus n (mult n i)
 lemma1 n i = ?l2
 
 -- Language types.
--- NOTE: I'm not sure how sizes should be handled.
--- The paper makes a separate environment for them, but I'm
--- not clear on how that works exactly.
 data Ty = TyFlo | TyInt | TyArray Ty Nat
         | TyTup Ty Ty | TyFun Ty Ty
 
@@ -31,6 +28,8 @@ data HasType : (i : Fin n) -> Vect n Ty -> Ty -> Type where
   Stop : HasType FZ (t :: G) t
   Pop  : HasType k G t -> HasType (FS k) (u :: G) t
 
+-- NOTE: I'm not sure how sizes should be handled.
+
 data Expr : Vect n Ty -> Ty -> Type where
 
   -- Literals
@@ -48,15 +47,16 @@ data Expr : Vect n Ty -> Ty -> Type where
             Expr G (TyArray a s) -> Expr G (TyArray b s)
   Zip     : Expr G (TyArray a s) -> Expr G (TyArray b s) ->
             Expr G (TyArray (TyTup a b) s)
-  Split   : (n : Nat) ->
+  Split   : (n : Nat) -> -- Should this be a plain (idris) nat?
             Expr G (TyArray a (mult n i)) ->
             Expr G (TyArray (TyArray a n) i)
   Join    : Expr G (TyArray (TyArray a i) j) ->
             Expr G (TyArray a (mult j i))
-  Iterate : (n : Nat) ->
-            Expr G (TyFun (TyArray a (mult i m)) (TyArray a m)) ->
-            Expr G (TyArray a (mult (power i n) j)) ->
-            Expr G (TyArray a j)
+            
+  -- Iterate : (n : Nat) -> -- How should the function for iterate work here?
+  --           Expr G (TyFun (TyArray a (mult i m)) (TyArray a m)) ->
+  --           Expr G (TyArray a (mult (power i n) j)) ->
+  --           Expr G (TyArray a j)
 
 data Env : Vect n Ty -> Type where
   Nil  : Env Nil
@@ -73,14 +73,17 @@ interp env (ValI x) = x
 interp env (Lam sc) = \x => interp (x :: env) sc
 interp env (App f s) = interp env f (interp env s)
 interp env (Op op x y) = op (interp env x) (interp env y)
+
 interp env (Map f arr) = doMap (interp env f) (interp env arr)
        where doMap : (a -> b) -> Vect n a -> Vect n b
              doMap f Nil = Nil
              doMap f (x :: xs) = (f x) :: (doMap f xs)
+
 interp env (Zip xs1 xs2) = doZip (interp env xs1) (interp env xs2)
        where doZip : Vect n a -> Vect n b -> Vect n (a, b)
              doZip Nil Nil = Nil
              doZip (x :: xs) (y :: ys) = (x, y) :: (doZip xs ys)
+
 interp env (Split n xs) = doSplit n (interp env xs)
        where doSplit : (n : Nat) -> Vect (mult n i) a -> 
                        Vect i (Vect n a)
@@ -99,6 +102,18 @@ interp env (Join xs) = doJoin (interp env xs)
        where doJoin : Vect j (Vect i a) -> Vect (mult j i) a
              doJoin Nil = Nil
              doJoin (x :: xs) = x ++ (doJoin xs)
-interp env (Iterate n f xs) = ?evaliterate
+
+-- interp env (Iterate n f xs) = ?evaliterate
 
 }
+
+interp.l2 = proof
+  intros
+  induction i
+  rewrite sym (multZeroRightZero n)
+  rewrite sym (multOneRightNeutral n)
+  rewrite sym (plusZeroRightNeutral n)
+  trivial
+  intros
+  rewrite (multRightSuccPlus n (S n__0))
+  trivial
