@@ -16,7 +16,16 @@ Vector a i = Vect i a
 -- lemmas
 
 lemma1 : (n: Size) -> (i: Size) -> mult n (S i) = plus n (mult n i)
-lemma1 n i = ?l2
+lemma1 n i = ?lemma1_proof
+
+lemma2 : (a: Type) -> (n: Size) -> Array a Z = Array a (n * Z)
+lemma2 _ n = ?lemma2_proof
+
+lemma3 : {a: Type} -> (k: Size) ->
+          (Data.VectType.Vect.Nil {a=a})
+            = replace (sym (replace (multZeroRightZero k) Refl))
+                (Data.VectType.Vect.Nil {a=a})
+lemma3 k = ?lemma3_proof
 
 -- algorithmic primitives
 
@@ -37,8 +46,11 @@ reduce f z (x :: xs)  = reduce f (f (z,x)) xs
 
 split : {a: Type} -> {i: Size} ->
       (n: Size) -> Array a (n * i) -> Array (Array a n) i
-split {a} {i=Z}   n (rewrite (multZeroRightZero n) in Nil) = Nil
-split {a} {i=S k} n xs  = a1 :: a2
+split {a} {i=Z}   Z _ = Nil
+split {a} {i=S k} Z _ = replicate (S k) Nil
+
+split {a} {i=Z}   (S k) _  = Nil
+split {a} {i=S k} n xs = a1 :: a2
   where
     take' : (n: Size) -> Array a (n + n * k) -> Array a n
     take' n = take n
@@ -56,6 +68,8 @@ split {a} {i=S k} n xs  = a1 :: a2
 join : {a: Type} -> {i: Size} -> {j: Size} ->
       Array (Array a i) j -> Array a (j * i)
 join Nil = Nil
+join {a} {i=Z} {j}   _ = rewrite (multZeroRightZero j) in Nil
+join {a} {i}   {j=Z} _ = Nil
 join (x :: xs) = x ++ (skel.join xs)
 
 iterate : {a: Type} -> {i: Size} -> {j: Size} ->
@@ -119,8 +133,8 @@ reorderStride : {a: Type} -> {i: Size} ->
 reorderStride _ = id
 
 mapVec : {a: Type} -> {b: Type} ->
-      (n: Size) -> (a -> b) -> Vector a n -> Vector b n
-mapVec _ = skel.map
+         {n: Size} -> (a -> b) -> Vector a n -> Vector b n
+mapVec = skel.map
 
 splitVec : {a: Type} -> {i: Size} ->
       (n: Size) -> Array a (n * i) -> Array (Vector a n) i
@@ -135,27 +149,100 @@ joinVec (x :: xs) = x ++ (joinVec xs)
 
 -- rewrite rules
 {-
-iterateDecomp : {a : Type} -> {i : Size} -> {j : Size} ->
-                (n : Size) -> (m : Size)
-                           -> (f : {k : Size} -> Array a (i * k) -> Array a k) ->
+iterateDecomp : {a: Type} -> {i: Size} -> {j: Size} ->
+                (n: Size) -> (m: Size) ->
+                (f: {k : Size} -> Array a (i * k) -> Array a k) ->
                iterate (m + n) f {a=a} {i=i} {j=j}
                 =   iterate m f {a=a} {i=i} {j=j}
                   . iterate n f {a=a} {i=i} {j=(power i m) * j}
 iterateDecomp n m = ?decomp
 -}
 
-splitJoin : {a : Type} -> {b : Type} -> {i : Size} ->
-            (n : Size) -> (f : a -> b) -> (xs : Array a (n * i)) ->
+reorderCommutativity : {a: Type} -> {b: Type} -> {i: Size} ->
+                          (f: a -> b) -> (xs: Array a i) ->
+    skel.map f . skel.reorder $ xs = skel.reorder . skel.map f $ xs
+reorderCommutativity {a} {b} {i} f xs = ?reorderComm
+
+splitJoin : {a: Type} -> {b: Type} -> {i: Size} ->
+            (n: Size) -> (f: a -> b) -> (xs : Array a (n * i)) ->
             skel.map f xs = skel.join $ skel.map (skel.map f) $ skel.split n xs
-splitJoin {a} {b} {i=Z} Z f Nil = ?sj_nil
-splitJoin {a} {b} {i}   n f xs  = ?sj_cons
+splitJoin {a} {b} {i=Z}   Z _ Nil = Refl
+splitJoin {a} {b} {i=S k} Z _ Nil = ?sj_nil1
+splitJoin {a} {b} {i=Z}   (S k)  f (rewrite (multZeroRightZero k) in Nil) = ?sj_nil2
+splitJoin {a} {b} {i=S i0} (S n0) f xs = ?sj_all
 
 
---joinSplitSimple1 : skel.join . skel.split n = id
-joinSplitSimple1 : {a: Type} -> {b: Type} -> {i: Size} ->
-                   (n: Size) -> (xs: Array a (n *i)) ->
-                   skel.join $ skel.split n xs = xs
-joinSplitSimple1 n xs = ?jss
+cancellationOne : {a: Type} -> {i: Size} ->
+                  (n: Size) -> (xs: Array a (n * i)) ->
+                  skel.join . skel.split n $ xs = xs
+cancellationOne {a} {i=Z}   Z Nil = Refl
+cancellationOne {a} {i=S k} Z Nil = ?jss_nil --sym (lemma2 a k)
+cancellationOne {a} {i} (S k) xs  = ?jss
+
+{-
+cancellationTwo : {a: Type} -> {i: Size} ->
+                  (j: Size) -> (xs: Array (Array a i) j) ->
+                      skel.split {i=j} i . skel.join {i=i} {j=j} $ xs = xs
+cancellationTwo = ?cancellationTwo_all
+-}
+
+fusionOne : {a: Type} -> {b: Type} -> {c: Type} -> {i: Size} ->
+            (f: b -> c) -> (g: a -> b) -> (xs: Array a i) ->
+            skel.map f (skel.map g xs) = skel.map (f . g) xs
+fusionOne f g Nil       = Refl
+fusionOne f g (x :: xs) =
+  let inductiveHypothesis = fusionOne f g xs in
+      ?fusionOneStepCase
+
+fusionTwo : (f: (b,c) -> b) -> (z: b) -> (g: a -> c) -> (xs: Array a i) ->
+            skel.reduceSeq f z (skel.mapSeq g xs)
+              = skel.reduceSeq (\(acc, x) => f (acc, g x)) z xs
+fusionTwo f z g Nil       = Refl
+fusionTwo f z g (x :: xs) =
+  let inductiveHypothesis = fusionTwo f z g xs in
+      ?fusionTwoStepCase
+
+mapRule1 : (f: a -> b) -> (xs: Array a i) ->
+           skel.map f xs = skel.mapWorkgroup f xs
+mapRule1 f xs = ?mapRules_all
+
+mapRule2 : (f: a -> b) -> (xs: Array a i) ->
+           skel.map f xs = skel.mapLocal f xs
+mapRule2 f xs = ?mapRules_all
+
+mapRule3 : (f: a -> b) -> (xs: Array a i) ->
+           skel.map f xs = skel.mapGlobal f xs
+mapRule3 f xs = ?mapRules_all
+
+mapRule4 : (f: a -> b) -> (xs: Array a i) ->
+           skel.map f xs = skel.mapSeq f xs
+mapRule4 f xs = ?mapRules_all
+
+reduceRule : (f: (a,a) -> a) -> (z: a) -> (xs: Array a i) ->
+             skel.reduce f z xs = skel.reduceSeq f z xs
+reduceRule f z xs = ?reduceRule_all
+
+reorderIdRule : (xs: Array a i) ->
+                skel.reorder xs = xs
+reorderIdRule _ = Refl
+
+reorderStrideRule : (xs: Array a i) -> (n: Size) ->
+                    skel.reorder xs = skel.reorderStride n xs
+reorderStrideRule _ _ = Refl
+
+localMemRule : (f: a -> b) -> (xs: Array a i) ->
+               skel.mapLocal f xs = skel.toLocal (skel.mapLocal f) xs
+localMemRule _ _ = Refl
+
+globalMemRule : (f: a -> b) -> (xs: Array a i) ->
+                skel.mapLocal f xs = skel.toGlobal (skel.mapLocal f) xs
+globalMemRule _ _ = Refl
+
+vectorizationRule : {a: Type} -> {b: Type} -> {i: Size} ->
+            (n: Size) -> (f: a -> b) -> (xs : Array a (n * i)) ->
+            skel.map f xs
+              = skel.joinVec (skel.map (skel.mapVec f) (skel.splitVec n xs))
+vectorizationRule n f xs = ?vectorizationRule_all
 
 -- some tests
 
@@ -176,12 +263,27 @@ zs = reduce add 0 xs
 
 ---------- Proofs ----------
 
-skel.sj_nil = proof
+skel.mapRules_all = proof
   intros
-  trivial 
+  induction xs
+  trivial
+  intros
+  rewrite ihv__0
+  trivial
 
 
-skel.l2 = proof
+skel.fusionOneStepCase = proof
+  intros
+  rewrite sym inductiveHypothesis 
+  trivial
+
+
+skel.lemma2_proof = proof
+  intros
+  rewrite multZeroRightZero n
+  trivial
+
+skel.lemma1_proof = proof
   intros
   induction i
   rewrite sym (multZeroRightZero n)
