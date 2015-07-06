@@ -182,15 +182,14 @@ splitJoin : {a: Type} -> {b: Type} -> {i: Size} ->
             (n: Size) -> (f: a -> b) -> (xs : Array a (n * i)) ->
     skel.map f xs = skel.join $ skel.map (skel.map f) $ skel.split n xs
 
-splitJoin {a} {b} {i=Z}   Z _ Nil = Refl
-splitJoin {a} {b} {i=S k} Z _ Nil = ?sj_nil1
-splitJoin {a} {b} {i=Z}   (S k)  f (rewrite (multZeroRightZero k) in Nil) = ?sj_nil2
+splitJoin {a} {b} {i=i} Z _ Nil = ?sj_nil1
+splitJoin {a} {b} {i=Z} n _ (rewrite (multZeroRightZero n) in Nil) = ?sj_nil2
 
-splitJoin {a} {b} {i=S k} n f xs =
-  let xs' : Array a (n + n * k) = rewrite sym (lemma1 n k) in xs
-      (a1, a2) : (Array a n, Array a (n * k)) = splitAt n xs'
-      --inductiveHypothesis1 = splitJoin {a} {b} {i=1} n f (rewrite (multOneRightNeutral n) in a1)
-      --inductiveHypothesis2 = splitJoin {a} {b} {i=k} n f a2
+splitJoin {a} {b} {i=S i0} n f xs =
+  let xs' : Array a (n + n * i0) = rewrite sym (lemma1 n i0) in xs
+      (a1, a2) : (Array a n, Array a (n * i0)) = splitAt n xs'
+      --inductiveHypothesis1 = splitJoin {a} {b} {i=1}  n f (rewrite (multOneRightNeutral n) in a1)
+      --inductiveHypothesis2 = splitJoin {a} {b} {i=i0} n f a2
     in ?sj_all
 
 
