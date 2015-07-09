@@ -40,12 +40,12 @@ reduce f z (x :: xs)  = reduce f (f (z,x)) xs
 
 split : {a: Type} -> {i: Size} ->
         (n: Size) -> Array a (n * i) -> Array (Array a n) i
-split {a} {i=Z}   _ _ = Nil
-split {a} {i=S k} Z _ = replicate (S k) Nil
+split {a} {i=Z}   _ _   = Nil
+split {a} {i}     Z Nil = replicate i Nil
 
-split {a} {i=S k} n xs =
-  let xs' : Array a (n + n * k) = rewrite sym (lemma1 n k) in xs
-      (a1, a2) : (Array a n, Array a (n * k)) = splitAt n xs'
+split {a} {i=S i0} n xs =
+  let xs' : Array a (n + n * i0) = rewrite sym (lemma1 n i0) in xs
+      (a1, a2) : (Array a n, Array a (n * i0)) = splitAt n xs'
     in a1 :: (skel.split n a2)
 
 
